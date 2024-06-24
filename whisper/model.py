@@ -130,7 +130,8 @@ class OnnxAudioEncoder():
                     #         'trt_fp16_enable': True,
                     #     }
                     # ),
-                    'CUDAExecutionProvider'
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
                 ],
             )
         self.inputs = {
@@ -165,7 +166,8 @@ class OnnxTextDecoder():
             ort.InferenceSession(
                 path_or_bytes=model_download(name=f'{model}_decoder'),
                 providers=[
-                    'CUDAExecutionProvider'
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
                 ],
             )
         self.inputs = {
