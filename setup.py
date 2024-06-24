@@ -28,10 +28,6 @@ setup(
     url="https://github.com/rhysdg",
     license="MIT",
     include_package_data=True,
-    packages=find_packages(exclude=["tests*"]),
-    package_data={
-        'assets': ['mel_filters.npz'],
-    },
     install_requires=[
         str(r)
         for r in pkg_resources.parse_requirements(
