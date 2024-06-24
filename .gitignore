@@ -3,7 +3,6 @@
 *.mp4
 *.npy
 *.srt
-*.txt
 *.vtt
 *.engine
 *.profile
