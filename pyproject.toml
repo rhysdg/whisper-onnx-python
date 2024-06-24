@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whisper-onnx-python"
+version = "0.0.1"
+description = "ONNX deployment of Whisper"
+readme = "README.md"
+authors = [{ name="Rhys Williams", email="rhysdgwilliams@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">= 3.8"
+
+dependencies = [
+"numpy==1.24.2",
+"ffmpeg==1.4",
+"transformers==4.41.2",
+"opencv-python-headless >=4.0.1",
+"onnxruntime-gpu >=1.8.0",
+"onnx==1.13.1",
+"pillow >=10.1.0",
+"ftfy >=6.0.3",
+"tqdm >= 2.2.3",
+"regex >= 2024.5.15"]
+
+
+[project.urls]
+"Homepage" = "https://github.com/lakeraai/onnx_clip"
+
+
