@@ -27,6 +27,10 @@ setup(
     author="rhysdg",
     url="https://github.com/rhysdg",
     license="MIT",
+    packages=find_packages(exclude=["tests*"]),
+    package_data={
+        '': ['*.npz', '*.txt', '*.json'],
+    },
     include_package_data=True,
     install_requires=[
         str(r)
