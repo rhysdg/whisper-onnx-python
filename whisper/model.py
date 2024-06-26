@@ -1,43 +1,28 @@
 import io
+import sys
 import os
+from tqdm.auto import tqdm
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple, Union, TYPE_CHECKING
 import numpy as np
 import requests
 import onnx
+import warnings
 import onnxruntime as ort
-from whisper.decoding import detect_language as detect_language_function, decode as decode_function
+
 from whisper.utils import onnx_dtype_to_np_dtype_convert
-
-
-
-
-import os
-import sys
-sys.path.append(os.getcwd())
-import argparse
-import warnings
-from typing import List, Optional, Tuple, Union, TYPE_CHECKING
-
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=Warning)
-warnings.simplefilter(action='ignore', category=DeprecationWarning)
-warnings.simplefilter(action='ignore', category=RuntimeWarning)
-
-import numpy as np
-import tqdm
-
-#from whisper.model import load_model, available_models
-#from whisper.audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
-#from whisper.decoding import DecodingOptions, DecodingResult
-#from whisper.tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
-#from whisper.utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_txt, write_vtt, write_srt
-
+from whisper.audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
+from whisper.decoding import detect_language as detect_language_function, decode as decode_function, DecodingOptions, DecodingResult
+from whisper.tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
+from whisper.utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_txt, write_vtt, write_srt
 
 if TYPE_CHECKING:
     from whisper.model import Whisper
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=Warning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 
 _MODELS = {
@@ -55,7 +40,6 @@ _MODELS = {
 
 def model_download(name: str, onnx_file_save_path: str='.') -> onnx.ModelProto:
     onnx_file = f'{name}.onnx'
-    print(onnx_file)
     onnx_file_path = f'{onnx_file_save_path}/{onnx_file}'
     onnx_serialized_graph = None
     if not os.path.exists(onnx_file_path):
@@ -442,7 +426,7 @@ class Whisper():
         num_frames = mel.shape[-1]
         previous_seek_value = seek
 
-        with tqdm.tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
+        with tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
             while seek < num_frames:
                 timestamp_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
                 segment = pad_or_trim(mel[:, :, seek:], N_FRAMES)
