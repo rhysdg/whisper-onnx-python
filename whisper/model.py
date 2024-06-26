@@ -445,17 +445,11 @@ class Whisper():
                 result = decode_with_fallback(segment)[0]
                 tokens = result.tokens
 
-                if no_speech_threshold is not None:
-                    # no voice activity check
-                    should_skip = result.no_speech_prob > no_speech_threshold
-                    if logprob_threshold is not None and result.avg_logprob > logprob_threshold:
-                        # don't skip if the logprob is high enough, despite the no_speech_prob
-                        should_skip = False
-
-                    if should_skip:
-                        seek += segment.shape[-1]  # fast-forward to the next segment boundary
+                if no_speech_threshold is not None and result.no_speech_prob > no_speech_threshold:
+                    if logprob_threshold is None or result.avg_logprob <= logprob_threshold:
+                        seek += segment.shape[-1]
                         continue
-
+                        
                 timestamp_tokens: np.ndarray = np.greater_equal(tokens, self.tokenizer.timestamp_begin)
                 consecutive = np.add(np.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0], 1)
                 if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
