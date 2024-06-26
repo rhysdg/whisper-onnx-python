@@ -435,7 +435,7 @@ class Whisper():
         num_frames = mel.shape[-1]
         previous_seek_value = seek
 
-        with tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
+        with tqdm(total=num_frames, unit='frames', disable=verbose is not False, miniters=1) as pbar:
             while seek < num_frames:
                 timestamp_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
                 segment = pad_or_trim(mel[:, :, seek:], N_FRAMES)
@@ -479,7 +479,7 @@ class Whisper():
                         tokens[last_slice - 1] - self.tokenizer.timestamp_begin
                     )
                     seek += last_timestamp_position * input_stride
-                    all_tokens.extend(list(tokens[: last_slice + 1]))
+                    all_tokens.extend([t for t in tokens[:last_slice + 1]])
                 else:
                     duration = segment_duration
                     tokens = np.asarray(tokens) if isinstance(tokens, list) else tokens
