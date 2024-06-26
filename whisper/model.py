@@ -66,7 +66,7 @@ def model_download(name: str, onnx_file_save_path: str='.') -> onnx.ModelProto:
         onnx_serialized_graph = onnx._serialize(onnx_graph)
     return onnx_serialized_graph
 
-def load_model(name: str):
+def load_model(**decode_options):
     """
     Load a Whisper ASR model
 
@@ -81,6 +81,8 @@ def load_model(name: str):
     model : Whisper
         The Whisper ASR model instance
     """
+
+    name = decode_options['name']
 
     if name == "tiny":
         dims_config = {'n_mels': 80, 'n_vocab': 51865, 'n_audio_ctx': 1500, 'n_audio_state': 384, 'n_audio_head': 6, 'n_audio_layer': 4, 'n_text_ctx': 448, 'n_text_state': 384, 'n_text_head': 6, 'n_text_layer': 4}
@@ -106,7 +108,9 @@ def load_model(name: str):
         raise ValueError(f"model type {name} not supported")
 
     dims = ModelDimensions(**dims_config)
-    model = Whisper(dims=dims, model_name=name)
+    model = Whisper(dims=dims, 
+                    model_name=name, 
+                    **decode_options)
     return model
 
 def available_models() -> List[str]:
@@ -225,12 +229,29 @@ class Whisper():
         self,
         dims: ModelDimensions,
         model_name: str,
+        **decode_options
+
     ):
         super().__init__()
         self.model_name = model_name
         self.dims = dims
         self.encoder = OnnxAudioEncoder(model=model_name)
         self.decoder = OnnxTextDecoder(model=model_name)
+
+
+        if decode_options.get("language", None) is None:
+            if verbose:
+                print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
+            segment = pad_or_trim(mel, N_FRAMES)
+            _, probs = self.detect_language(segment)
+            decode_options["language"] = max(probs, key=probs.get)
+            if verbose is not None:
+                print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
+
+        self.language = decode_options["language"]
+        task = decode_options.get("task", "transcribe")
+        self.tokenizer = get_tokenizer(self.is_multilingual, language=self.language, task=task)
+
 
     def embed_audio(
         self,
@@ -333,22 +354,10 @@ class Whisper():
         A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
         the spoken language ("language"), which is detected when `decode_options["language"]` is None.
         """
+
         mel: np.ndarray = log_mel_spectrogram(audio, decode_options.pop("disable_cupy"))
-
-        if decode_options.get("language", None) is None:
-            if verbose:
-                print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
-            segment = pad_or_trim(mel, N_FRAMES)
-            _, probs = self.detect_language(segment)
-            decode_options["language"] = max(probs, key=probs.get)
-            if verbose is not None:
-                print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
-
         mel = mel[np.newaxis, ...]
-        language = decode_options["language"]
-        task = decode_options.get("task", "transcribe")
-        tokenizer = get_tokenizer(self.is_multilingual, language=language, task=task)
-
+        
         def decode_with_fallback(segment: np.ndarray) -> List[DecodingResult]:
 
             print('')
@@ -395,13 +404,13 @@ class Whisper():
 
         initial_prompt = decode_options.pop("initial_prompt", None) or []
         if initial_prompt:
-            initial_prompt = tokenizer.encode(" " + initial_prompt.strip())
+            initial_prompt = self.tokenizer.encode(" " + initial_prompt.strip())
             all_tokens.extend(initial_prompt)
 
         def add_segment(
             *, start: float, end: float, text_tokens: np.ndarray, result: DecodingResult
         ):
-            text = tokenizer.decode([token for token in text_tokens if token < tokenizer.eot])
+            text = self.tokenizer.decode([token for token in text_tokens if token < self.tokenizer.eot])
             if len(text.strip()) == 0:  # skip empty text output
                 return
 
@@ -447,17 +456,17 @@ class Whisper():
                         seek += segment.shape[-1]  # fast-forward to the next segment boundary
                         continue
 
-                timestamp_tokens: np.ndarray = np.greater_equal(tokens, tokenizer.timestamp_begin)
+                timestamp_tokens: np.ndarray = np.greater_equal(tokens, self.tokenizer.timestamp_begin)
                 consecutive = np.add(np.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0], 1)
                 if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
                     last_slice = 0
                     for current_slice in consecutive:
                         sliced_tokens = tokens[last_slice:current_slice]
                         start_timestamp_position = (
-                            sliced_tokens[0] - tokenizer.timestamp_begin
+                            sliced_tokens[0] - self.tokenizer.timestamp_begin
                         )
                         end_timestamp_position = (
-                            sliced_tokens[-1] - tokenizer.timestamp_begin
+                            sliced_tokens[-1] - self.tokenizer.timestamp_begin
                         )
                         add_segment(
                             start=timestamp_offset + start_timestamp_position * time_precision,
@@ -467,7 +476,7 @@ class Whisper():
                         )
                         last_slice = current_slice
                     last_timestamp_position = (
-                        tokens[last_slice - 1] - tokenizer.timestamp_begin
+                        tokens[last_slice - 1] - self.tokenizer.timestamp_begin
                     )
                     seek += last_timestamp_position * input_stride
                     all_tokens.extend(list(tokens[: last_slice + 1]))
@@ -480,7 +489,7 @@ class Whisper():
                     if len(timestamps) > 0:
                         # no consecutive timestamps but it has a timestamp; use the last one.
                         # single timestamp at the end means no speech after the last timestamp.
-                        last_timestamp_position = timestamps[-1] - tokenizer.timestamp_begin
+                        last_timestamp_position = timestamps[-1] - self.tokenizer.timestamp_begin
                         duration = last_timestamp_position * time_precision
 
                     add_segment(
@@ -501,7 +510,7 @@ class Whisper():
                 pbar.update(min(num_frames, seek) - previous_seek_value)
                 previous_seek_value = seek
 
-        return dict(text=tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=language)
+        return dict(text=self.tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=self.language)
 
     detect_language = detect_language_function
     decode = decode_function
