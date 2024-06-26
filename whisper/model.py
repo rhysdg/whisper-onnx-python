@@ -360,34 +360,38 @@ class Whisper():
         
         def decode_with_fallback(segment: np.ndarray) -> List[DecodingResult]:
 
-            print('')
             temperatures = [temperature] if isinstance(temperature, (int, float)) else temperature
-            kwargs = {**decode_options}
+            decode_options_copy = decode_options.copy()  # Only copy if needed
             t = temperatures[0]
             if t == 0:
-                best_of = kwargs.pop("best_of", None)
+                best_of = decode_options_copy.pop("best_of", None)
             else:
-                best_of = kwargs.get("best_of", None)
+                best_of = decode_options_copy.get("best_of", None)
 
-            options = DecodingOptions(**kwargs, temperature=t)
+            options = DecodingOptions(**decode_options_copy, temperature=t)
             results = self.decode(segment, options)
 
-            kwargs.pop("beam_size", None)  # no beam search for t > 0
-            kwargs.pop("patience", None)  # no patience for t > 0
-            kwargs["best_of"] = best_of  # enable best_of for t > 0
+            decode_options_copy.pop("beam_size", None)
+            decode_options_copy.pop("patience", None)
+            decode_options_copy["best_of"] = best_of
+
             for t in temperatures[1:]:
-                needs_fallback = [
-                    compression_ratio_threshold is not None
-                    and result.compression_ratio > compression_ratio_threshold
-                    or logprob_threshold is not None
-                    and result.avg_logprob < logprob_threshold
-                    for result in results
-                ]
-                if any(needs_fallback):
-                    options = DecodingOptions(**kwargs, temperature=t)
-                    retries = self.decode(segment[needs_fallback], options)
-                    for retry_index, original_index in enumerate(np.nonzero(needs_fallback)[0]):
-                        results[original_index] = retries[retry_index]
+                # Vectorized check for needs_fallback
+                compression_needs_fallback = (compression_ratio_threshold is not None) & (
+                    np.array([result.compression_ratio for result in results]) > compression_ratio_threshold
+                )
+                logprob_needs_fallback = (logprob_threshold is not None) & (
+                    np.array([result.avg_logprob for result in results]) < logprob_threshold
+                )
+                needs_fallback = compression_needs_fallback | logprob_needs_fallback
+
+                if not any(needs_fallback):
+                    break  # Early termination
+
+                options = DecodingOptions(**decode_options_copy, temperature=t)
+                retries = self.decode(segment[needs_fallback], options)
+                for retry_index, original_index in enumerate(np.nonzero(needs_fallback)[0]):
+                    results[original_index] = retries[retry_index]
 
             return results
 
@@ -449,7 +453,7 @@ class Whisper():
                     if logprob_threshold is None or result.avg_logprob <= logprob_threshold:
                         seek += segment.shape[-1]
                         continue
-                        
+
                 timestamp_tokens: np.ndarray = np.greater_equal(tokens, self.tokenizer.timestamp_begin)
                 consecutive = np.add(np.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0], 1)
                 if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
