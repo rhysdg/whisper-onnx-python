@@ -95,6 +95,8 @@ def transcribe(
     tokenizer = get_tokenizer(model.is_multilingual, language=language, task=task)
 
     def decode_with_fallback(segment: np.ndarray) -> List[DecodingResult]:
+
+        print('')
         temperatures = [temperature] if isinstance(temperature, (int, float)) else temperature
         kwargs = {**decode_options}
         t = temperatures[0]
