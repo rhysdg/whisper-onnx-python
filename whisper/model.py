@@ -132,21 +132,25 @@ class OnnxAudioEncoder():
     def __init__(
         self,
         model: str,
-        precision: str
+        precision: str,
+        trt: bool = False
     ):
         super().__init__()
         
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED
 
+        providers = [
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
+                ]
+        if trt:
+            providers.insert(0, 'TensorrtExecutionProvider')
 
         self.sess = \
             ort.InferenceSession(
                 path_or_bytes=model_download(name=f'{model}_encoder_{precision}'),
-                providers=[
-                    'CUDAExecutionProvider',
-                    'CPUExecutionProvider'
-                ],
+                providers=providers,
                 sess_options=sess_options
             )
         self.inputs = {
@@ -174,23 +178,28 @@ class OnnxTextDecoder():
     def __init__(
         self,
         model: str,
-        precision: str
+        precision: str,
+        trt: bool = False
     ):
         super().__init__()
         
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED
+        providers = [
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
+                ]
+        if trt:
+            providers.insert(0, 'TensorrtExecutionProvider')
 
 
         self.sess = \
             ort.InferenceSession(
                 path_or_bytes=model_download(name=f'{model}_decoder_{precision}', decoder=True),
-                providers=[
-                    'CUDAExecutionProvider',
-                    'CPUExecutionProvider'
-                ],
+                providers=providers,
                 sess_options=sess_options
             )
+            
         self.inputs = {
             input.name: onnx_dtype_to_np_dtype_convert(input.type) \
                 for input in self.sess.get_inputs()
