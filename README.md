@@ -145,6 +145,8 @@
 <!-- PROPOSED UPDATES -->
 ## Latest Updates
 - Finished the core Python package
+- Added an example assistant
+- Added Jetpack support
 
 <!-- PROPOSED UPDATES -->
 ## Future updates
