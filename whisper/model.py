@@ -1,14 +1,15 @@
 import io
 import sys
 import os
+import gdown
 from tqdm.auto import tqdm
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Tuple, Union, TYPE_CHECKING
 import numpy as np
 import requests
 import onnx
 import warnings
 import onnxruntime as ort
+from typing import List, Dict, Optional, Tuple, Union, TYPE_CHECKING
 
 from whisper.utils import onnx_dtype_to_np_dtype_convert
 from whisper.audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
@@ -26,44 +27,40 @@ warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 
 _MODELS = {
-    "tiny.en": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/tiny.en.pt",
-    "tiny": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/tiny.pt",
-    "base.en": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/base.en.pt",
-    "base": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/base.pt",
-    "small.en": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/small.en.pt",
-    "small": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/small.pt",
-    "medium.en": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/medium.en.pt",
-    "medium": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/medium.pt",
-    "large-v1": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/large-v1.pt",
-    "large-v2": "https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/pt/large-v2.pt",
+    "tiny.en": "",
+    "tiny": "",
+    "base.en": "",
+    "base": "",
+    "small.en": "https://drive.google.com/file/d/1LHz5v6b6F-x9Vd4-1lW3aSNrCkKNGfDD/view?usp=sharing",
+    "small": "https://drive.google.com/file/d/1UFb0oxX9Ab1JJ4M5lNXv-M4G6R7XEicm/view?usp=sharing",
+    "medium.en": "",
+    "medium": "",
+    "large-v1": "",
+    "large-v2": "",
 }
 
-def model_download(name: str, onnx_file_save_path: str='.') -> onnx.ModelProto:
-    onnx_file = f'{name}.onnx'
-    onnx_file_path = f'{onnx_file_save_path}/{onnx_file}'
-    onnx_serialized_graph = None
-    if not os.path.exists(onnx_file_path):
-        try:
-            url = f'https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/onnx/whisper-onnx-xxx/float16/layer_fused_optimization_float16/{onnx_file}'
-            onnx_serialized_graph = requests.get(url).content
-            with io.BytesIO(onnx_serialized_graph) as f:
-                onnx_graph: onnx.ModelProto = onnx.load(f)
-                onnx.save(onnx_graph, f'{onnx_file_path}')
-        except:
-            onnx_file = f'{name}.onnx'
-            onnx_file_path = f'{onnx_file_save_path}/{onnx_file}'
-            if not os.path.exists(onnx_file_path):
-                url = f'https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/onnx/whisper-onnx-xxx/float16/no_optimization/{onnx_file}'
-                onnx_serialized_graph = requests.get(url).content
-                with io.BytesIO(onnx_serialized_graph) as f:
-                    onnx_graph: onnx.ModelProto = onnx.load(f)
-                    onnx.save(onnx_graph, f'{onnx_file_path}')
-            else:
-                onnx_graph: onnx.ModelProto = onnx.load(onnx_file_path)
-                onnx_serialized_graph = onnx._serialize(onnx_graph)
+def model_download(name: str, onnx_file_save_path: str='.', decoder=False) -> onnx.ModelProto:
+
+    dest = name.split('.en')
+    destination = dest[0] + dest[1] + '.onnx'
+
+    if not decoder:
+        dl = f'{dest[0]}.en' 
     else:
-        onnx_graph: onnx.ModelProto = onnx.load(onnx_file_path)
+        dl = dest[0]
+
+    if not os.path.exists(f'./{destination}'):
+        gdown.download(url=_MODELS[dl], 
+                        output=f'./{destination}', 
+                        fuzzy=True
+                        )
+  
+        onnx_graph: onnx.ModelProto = onnx.load(f'./{destination}')
         onnx_serialized_graph = onnx._serialize(onnx_graph)
+    else:
+        onnx_graph: onnx.ModelProto = onnx.load(f'./{destination}')
+        onnx_serialized_graph = onnx._serialize(onnx_graph)
+
     return onnx_serialized_graph
 
 def load_model(**decode_options):
@@ -135,6 +132,7 @@ class OnnxAudioEncoder():
     def __init__(
         self,
         model: str,
+        precision: str
     ):
         super().__init__()
         
@@ -144,7 +142,7 @@ class OnnxAudioEncoder():
 
         self.sess = \
             ort.InferenceSession(
-                path_or_bytes=model_download(name=f'{model}_encoder'),
+                path_or_bytes=model_download(name=f'{model}_encoder_{precision}'),
                 providers=[
                     'CUDAExecutionProvider',
                     'CPUExecutionProvider'
@@ -176,6 +174,7 @@ class OnnxTextDecoder():
     def __init__(
         self,
         model: str,
+        precision: str
     ):
         super().__init__()
         
@@ -185,7 +184,7 @@ class OnnxTextDecoder():
 
         self.sess = \
             ort.InferenceSession(
-                path_or_bytes=model_download(name=f'{model}_decoder'),
+                path_or_bytes=model_download(name=f'{model}_decoder_{precision}', decoder=True),
                 providers=[
                     'CUDAExecutionProvider',
                     'CPUExecutionProvider'
@@ -218,6 +217,7 @@ class OnnxTextDecoder():
                     "offset": np.array([offset], dtype=self.inputs["offset"]),
                 }
             )
+
         logits: np.ndarray = outputs[0]
         output_kv_cache: np.ndarray = outputs[1]
         cross_attention_qks: np.ndarray = outputs[2]
@@ -235,8 +235,8 @@ class Whisper():
         super().__init__()
         self.model_name = model_name
         self.dims = dims
-        self.encoder = OnnxAudioEncoder(model=model_name)
-        self.decoder = OnnxTextDecoder(model=model_name)
+        self.encoder = OnnxAudioEncoder(model=model_name,precision=decode_options["precision"])
+        self.decoder = OnnxTextDecoder(model=model_name,precision=decode_options["precision"])
 
 
         if decode_options.get("language", None) is None:
@@ -453,7 +453,7 @@ class Whisper():
                     if logprob_threshold is None or result.avg_logprob <= logprob_threshold:
                         seek += segment.shape[-1]
                         continue
-
+                        
                 timestamp_tokens: np.ndarray = np.greater_equal(tokens, self.tokenizer.timestamp_begin)
                 consecutive = np.add(np.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0], 1)
                 if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
