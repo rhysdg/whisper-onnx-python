@@ -5,7 +5,7 @@
 
 <!-- PROJECT LOGO -->
 <br />
-  <h3 align="center"> Whisper ONNX: An Optimized Speech-to-Text Python PAckage</h2>
+  <h3 align="center"> Whisper ONNX: An Optimized Speech-to-Text Python Package</h2>
   <p align="center">
      Low-latency image segmentation and search with contrastive language-image pre-training
      <br />
