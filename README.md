@@ -63,7 +63,7 @@ pip install git+https://github.com/rhysdg/whisper-onnx-python.git
 
 ```
 
-## Example usage (CLIP/SigLIP - SAM incoming) :
+## Example usage:
 
 - Currently usage closely follows the official package but with a trt swicth (currently being debugged) and expects either an audio file or a numy array:
 
