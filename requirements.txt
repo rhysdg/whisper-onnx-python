@@ -2,7 +2,7 @@ numpy==1.26.4
 ffmpeg-python==0.2.0
 transformers==4.41.2
 opencv-python-headless >=4.0.1
-onnxruntime-gpu >=1.16.0
+onnxruntime-gpu >=1.16.0; sys_platform != 'aarch_64'
 onnx==1.13.1
 pillow >=10.1.0
 ftfy >=6.0.3
@@ -10,4 +10,6 @@ tqdm >= 2.2.3
 regex >= 2024.5.15
 cupy==13.2.0
 gdown==5.2.0
+sounddevice==0.4.7
+sshkeyboard==2.3.1
 setuptools-git
