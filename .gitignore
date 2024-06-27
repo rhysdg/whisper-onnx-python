@@ -17,4 +17,4 @@ dist/
 build/
 backup/
 test.py
-
+*.part
