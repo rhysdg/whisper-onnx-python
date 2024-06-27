@@ -113,7 +113,9 @@ result = model.transcribe(
 
 ### Similar projects
 
-- Pending
+- Inspired by the work over at:
+  - [whisper-onnx-tensorrt](https://github.com/PINTO0309/whisper-onnx-tensorrt)
+  - [The original implementation](https://github.com/openai/whisper)
 
 <!-- PROPOSED UPDATES -->
 ## Latest Updates

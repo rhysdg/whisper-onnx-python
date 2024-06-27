@@ -31,36 +31,36 @@ _MODELS = {
     "tiny": "",
     "base.en": "",
     "base": "",
-    "small.en": "https://drive.google.com/file/d/1LHz5v6b6F-x9Vd4-1lW3aSNrCkKNGfDD/view?usp=sharing",
-    "small": "https://drive.google.com/file/d/1UFb0oxX9Ab1JJ4M5lNXv-M4G6R7XEicm/view?usp=sharing",
+    "small.en": "",
+    "small": "",
     "medium.en": "",
     "medium": "",
     "large-v1": "",
     "large-v2": "",
 }
 
-def model_download(name: str, onnx_file_save_path: str='.', decoder=False) -> onnx.ModelProto:
-
-    dest = name.split('.en')
-    destination = dest[0] + dest[1] + '.onnx'
-
-    if not decoder:
-        dl = f'{dest[0]}.en' 
+def model_download(name: str, onnx_file_save_path: str='.') -> onnx.ModelProto:
+    onnx_file = f'{name}.onnx'
+    onnx_file_path = f'{onnx_file_save_path}/{onnx_file}'
+    onnx_serialized_graph = None
+    if not os.path.exists(onnx_file_path):
+        onnx_file = f'{name}.onnx'
+        onnx_file_path = f'{onnx_file_save_path}/{onnx_file}'
+        if not os.path.exists(onnx_file_path):
+            url = f'https://s3.ap-northeast-2.wasabisys.com/pinto-model-zoo/381_Whisper/onnx/whisper-onnx-xxx/float16/no_optimization/{onnx_file}'
+            onnx_serialized_graph = gdown.download(url=self._MODELS[os.path.basename(path)], 
+                            output=path, 
+                            fuzzy=True
+                            )
+            with io.BytesIO(onnx_serialized_graph) as f:
+                onnx_graph: onnx.ModelProto = onnx.load(f)
+                onnx.save(onnx_graph, f'{onnx_file_path}')
+        else:
+            onnx_graph: onnx.ModelProto = onnx.load(onnx_file_path)
+            onnx_serialized_graph = onnx._serialize(onnx_graph)
     else:
-        dl = dest[0]
-
-    if not os.path.exists(f'./{destination}'):
-        gdown.download(url=_MODELS[dl], 
-                        output=f'./{destination}', 
-                        fuzzy=True
-                        )
-  
-        onnx_graph: onnx.ModelProto = onnx.load(f'./{destination}')
+        onnx_graph: onnx.ModelProto = onnx.load(onnx_file_path)
         onnx_serialized_graph = onnx._serialize(onnx_graph)
-    else:
-        onnx_graph: onnx.ModelProto = onnx.load(f'./{destination}')
-        onnx_serialized_graph = onnx._serialize(onnx_graph)
-
     return onnx_serialized_graph
 
 def load_model(**decode_options):
@@ -132,25 +132,21 @@ class OnnxAudioEncoder():
     def __init__(
         self,
         model: str,
-        precision: str,
-        trt: bool = False
+        precision: str
     ):
         super().__init__()
         
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED
 
-        providers = [
-                    'CUDAExecutionProvider',
-                    'CPUExecutionProvider'
-                ]
-        if trt:
-            providers.insert(0, 'TensorrtExecutionProvider')
 
         self.sess = \
             ort.InferenceSession(
                 path_or_bytes=model_download(name=f'{model}_encoder_{precision}'),
-                providers=providers,
+                providers=[
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
+                ],
                 sess_options=sess_options
             )
         self.inputs = {
@@ -178,37 +174,25 @@ class OnnxTextDecoder():
     def __init__(
         self,
         model: str,
-        precision: str,
-        trt: bool = False
+        precision: str
     ):
         super().__init__()
         
         sess_options = ort.SessionOptions()
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED
-        providers = [
-                    'CUDAExecutionProvider',
-                    'CPUExecutionProvider'
-                ]
-        if trt:
-            providers.insert(0, 'TensorrtExecutionProvider')
 
 
         self.sess = \
             ort.InferenceSession(
-                path_or_bytes=model_download(name=f'{model}_decoder_{precision}', decoder=True),
-                providers=providers,
+                path_or_bytes=model_download(name=f'{model}_decoder_{precision}'),
+                providers=[
+                    'CUDAExecutionProvider',
+                    'CPUExecutionProvider'
+                ],
                 sess_options=sess_options
             )
-
         self.inputs = {
-            input.name: onnx_dtype_to_np_dtype_convert(input.type) \
-                for input in self.sess.get_inputs()
-        }
-
-    def __call__(
-        self,
-        x: np.ndarray,
-        xa: np.ndarray,
+            input.name: onnx_dtype_to_np_dtype_convsmall.en_decoder
         kv_cache: np.ndarray,
         offset: int,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -226,7 +210,6 @@ class OnnxTextDecoder():
                     "offset": np.array([offset], dtype=self.inputs["offset"]),
                 }
             )
-
         logits: np.ndarray = outputs[0]
         output_kv_cache: np.ndarray = outputs[1]
         cross_attention_qks: np.ndarray = outputs[2]
@@ -238,21 +221,15 @@ class Whisper():
         self,
         dims: ModelDimensions,
         model_name: str,
-        trt: bool = False,
         **decode_options
 
     ):
         super().__init__()
         self.model_name = model_name
         self.dims = dims
-        self.encoder = OnnxAudioEncoder(model=model_name,
-                precision=decode_options["precision"],
-                trt=trt
-                )
-        self.decoder = OnnxTextDecoder(model=model_name,
-                precision=decode_options["precision"], 
-                trt=trt
-                )
+        self.encoder = OnnxAudioEncoder(model=model_name,precision=precision)
+        self.decoder = OnnxTextDecoder(model=model_name,precsion=precision)
+
 
         if decode_options.get("language", None) is None:
             if verbose:
