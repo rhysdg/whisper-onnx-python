@@ -7,7 +7,6 @@
 <br />
   <h3 align="center"> Whisper ONNX: An Optimized Speech-to-Text Python Package</h2>
   <p align="center">
-     Low-latency image segmentation and search with contrastive language-image pre-training
      <br />
     <a href="https://github.com/rhysdg/whisper-onnx-python/wiki"<strong>Explore the docs »</strong></a>
     <br />
