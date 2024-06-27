@@ -18,3 +18,4 @@ build/
 backup/
 test.py
 *.part
+*.whl

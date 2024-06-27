@@ -62,6 +62,17 @@
 
   ```
 
+- For Jetpack 5 support with Python 3.11 go ahead and run the installation script first to grab a pre-built `onnxruntime-gpu` wheel for `aarch_64` and a few extra dependencies:
+
+  ```bash
+  sh jetson_install.sh 
+
+  pip install .
+
+  ```
+
+
+
 ## Example usage:
 
 - Currently usage closely follows the official package but with a trt swicth (currently being debugged, False is recommended as a result) and expects either an audio file or a numy array:
@@ -93,6 +104,7 @@
   - Release to  start transcription
   - This has been tested on Ubuntu 22.04 and Jetpack 5 on a AGX  Xavier but feel free to open an issue so we can work through any issues!
 
+
   ```bash
   python examples/example_assistant.py
   ```
@@ -112,6 +124,9 @@
 
 
 ### Testing
+
+- Ubuntu 22.04 - RTX 3080, 8-core, Python 3.11 - **passing**
+- AGX Xavier, Jetpack 5.1.3, Python 3.11 - **Passing**
 
  - CI/CD will be expanded as we go - all general instantiation test pass so far.
 
