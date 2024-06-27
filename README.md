@@ -51,7 +51,7 @@
 <!-- GETTING STARTED -->
 ## Getting Started:
 
-- Right now getting started us as simple as either a pip install from root or the upstream repo:
+- Right now getting started is as simple as either a pip install from root or the upstream repo:
 
 
   ```bash
@@ -65,7 +65,7 @@
 
 ## Example usage:
 
-- Currently usage closely follows the official package but with a trt swicth (currently being debugged) and expects either an audio file or a numy array:
+- Currently usage closely follows the official package but with a trt swicth (currently being debugged, False is recommended as a result) and expects either an audio file or a numy array:
 
 
 
@@ -80,7 +80,7 @@
 
   temperature = tuple(np.arange(0, 1.0 + 1e-6, 0.2))
 
-  model = whisper.load_model(trt=True, **args)
+  model = whisper.load_model(trt=False, **args)
   result = model.transcribe(
                       'data/test.wav', 
                       temperature=temperature,
