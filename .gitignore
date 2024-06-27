@@ -15,5 +15,6 @@ packages
 .ipynb_checkpoints
 dist/
 build/
-
-
+backup/
+test.py
+*.part

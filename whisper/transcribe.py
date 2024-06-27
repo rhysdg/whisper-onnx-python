@@ -80,21 +80,9 @@ def transcribe(
     """
     mel: np.ndarray = log_mel_spectrogram(audio, decode_options.pop("disable_cupy"))
 
-    if decode_options.get("language", None) is None:
-        if verbose:
-            print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
-        segment = pad_or_trim(mel, N_FRAMES)
-        _, probs = model.detect_language(segment)
-        decode_options["language"] = max(probs, key=probs.get)
-        if verbose is not None:
-            print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
-
-    mel = mel[np.newaxis, ...]
-    language = decode_options["language"]
-    task = decode_options.get("task", "transcribe")
-    tokenizer = get_tokenizer(model.is_multilingual, language=language, task=task)
-
     def decode_with_fallback(segment: np.ndarray) -> List[DecodingResult]:
+
+        print('')
         temperatures = [temperature] if isinstance(temperature, (int, float)) else temperature
         kwargs = {**decode_options}
         t = temperatures[0]
@@ -244,7 +232,7 @@ def transcribe(
             pbar.update(min(num_frames, seek) - previous_seek_value)
             previous_seek_value = seek
 
-    return dict(text=tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=language)
+    return dict(text=tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=self.language)
 
 
 def cli():
