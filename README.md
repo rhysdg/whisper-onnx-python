@@ -7,7 +7,6 @@
 <br />
   <h3 align="center"> Whisper ONNX: An Optimized Speech-to-Text Python Package</h2>
   <p align="center">
-     Low-latency image segmentation and search with contrastive language-image pre-training
      <br />
     <a href="https://github.com/rhysdg/whisper-onnx-python/wiki"<strong>Explore the docs »</strong></a>
     <br />
@@ -51,42 +50,53 @@
 <!-- GETTING STARTED -->
 ## Getting Started:
 
-- Right now getting started us as simple as either a pip install from root or the upstream repo:
+- Right now getting started is as simple as either a pip install from root or the upstream repo:
 
 
-```bash
-pip install .
+  ```bash
+  pip install .
 
-#or 
+  #or 
 
-pip install git+https://github.com/rhysdg/whisper-onnx-python.git
+  pip install git+https://github.com/rhysdg/whisper-onnx-python.git
 
-```
+  ```
 
 ## Example usage:
 
-- Currently usage closely follows the official package but with a trt swicth (currently being debugged) and expects either an audio file or a numy array:
+- Currently usage closely follows the official package but with a trt swicth (currently being debugged, False is recommended as a result) and expects either an audio file or a numy array:
 
 
 
-```python
-import numpy as np
-import whisper
+  ```python
+  import numpy as np
+  import whisper
 
-args = {"language": 'English',
-        "name": "small.en",
-        "precision": "fp32",
-        "disable_cupy": False}
+  args = {"language": 'English',
+          "name": "small.en",
+          "precision": "fp32",
+          "disable_cupy": False}
 
-temperature = tuple(np.arange(0, 1.0 + 1e-6, 0.2))
+  temperature = tuple(np.arange(0, 1.0 + 1e-6, 0.2))
 
-model = whisper.load_model(trt=True, **args)
-result = model.transcribe(
-                    'data/test.wav', 
-                    temperature=temperature,
-                    **args
-                    )
+  model = whisper.load_model(trt=False, **args)
+  result = model.transcribe(
+                      'data/test.wav', 
+                      temperature=temperature,
+                      **args
+                      )
+    ```
+
+- You can also find an example voice transcription assistant at `examples/example_assistant.py`
+
+  - Go ahead and hold in your space bar from the command line in order to start recording
+  - Release to  start transcription
+  - This has been tested on Ubuntu 22.04 and Jetpack 5 on a AGX  Xavier but feel free to open an issue so we can work through any issues!
+
+  ```bash
+  python examples/example_assistant.py
   ```
+
 
 ## Customisation:
 
