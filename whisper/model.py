@@ -199,7 +199,7 @@ class OnnxTextDecoder():
                 providers=providers,
                 sess_options=sess_options
             )
-            
+
         self.inputs = {
             input.name: onnx_dtype_to_np_dtype_convert(input.type) \
                 for input in self.sess.get_inputs()
@@ -238,15 +238,21 @@ class Whisper():
         self,
         dims: ModelDimensions,
         model_name: str,
+        trt: bool = False,
         **decode_options
 
     ):
         super().__init__()
         self.model_name = model_name
         self.dims = dims
-        self.encoder = OnnxAudioEncoder(model=model_name,precision=decode_options["precision"])
-        self.decoder = OnnxTextDecoder(model=model_name,precision=decode_options["precision"])
-
+        self.encoder = OnnxAudioEncoder(model=model_name,
+                precision=decode_options["precision"],
+                trt=trt
+                )
+        self.decoder = OnnxTextDecoder(model=model_name,
+                precision=decode_options["precision"], 
+                trt=trt
+                )
 
         if decode_options.get("language", None) is None:
             if verbose:
