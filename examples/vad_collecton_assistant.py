@@ -1,7 +1,13 @@
+
+import logging
 import numpy as np
 import pyaudio
+
+
 import whisper
-import logging
+from whisper import silero_model
+from whisper.silero_vad.utils_vad import *
+
 import sounddevice as sd
 from sshkeyboard import listen_keyboard, stop_listening
 
@@ -17,6 +23,32 @@ INPUT_CHUNK = 16000*5
 ##change this to your own device should you need
 INPUT_DEVICE = sd.default.device[0]
 logging.info(f"Using default device {INPUT_DEVICE}")
+
+###
+#https://github.com/snakers4/silero-vad/tree/master/examples/pyaudio-streaming
+###
+# Taken from utils_vad.py
+def validate(model,
+             inputs: torch.Tensor):
+    with torch.no_grad():
+        outs = model(inputs)
+    return outs
+
+#modified version of the above notebook
+def int2float(sound):
+    sound = np.frombuffer(audio_chunk, np.int16)
+    abs_max = np.abs(sound).max()
+    sound = sound.astype('float32')
+    if abs_max > 0:
+        sound *= 1/32768
+    sound = sound.squeeze()  # depends on the use case
+    return sound
+
+def silero_infer(chunk):
+
+    return model(torch.from_numpy(int2float(chunk)), 16000).item()
+
+
 
 class Assistant:
     def __init__(self):
