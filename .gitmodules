@@ -1,0 +1,6 @@
+[submodule "silero_vad"]
+	path = silero_vad
+	url = https://github.com/snakers4/silero-vad.git
+[submodule "whisper/silero_vad"]
+	path = whisper/silero_vad
+	url = https://github.com/snakers4/silero-vad.git

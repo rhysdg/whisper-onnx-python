@@ -23,8 +23,7 @@ class Assistant:
   
         self.audio = pyaudio.PyAudio()
 
-        try:
-            self.audio_stream = self.audio.open(format=INPUT_FORMAT,
+        try:o.audio.open(format=INPUT_FORMAT,
                             channels=INPUT_CHANNELS,
                             rate=INPUT_RATE,
                             input=True,
