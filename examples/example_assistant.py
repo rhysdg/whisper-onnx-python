@@ -1,5 +1,4 @@
+from whisper.silero_vad.utils_vad import *
 
-from .silero_vad import vad_utils
 
 
-print()
