@@ -55,7 +55,8 @@ class Assistant:
   
         self.audio = pyaudio.PyAudio()
 
-        try:o.audio.open(format=INPUT_FORMAT,
+        try:
+            self.audio_stream = self.audio.open(format=INPUT_FORMAT,
                             channels=INPUT_CHANNELS,
                             rate=INPUT_RATE,
                             input=True,
@@ -64,7 +65,7 @@ class Assistant:
                             )
         except Exception as e:                                            
             logging.error(f"Error opening audio stream: {str(e)}")
-            self.wait_exit()
+ 
 
         args = {"language": 'English',
         "name": "small.en",

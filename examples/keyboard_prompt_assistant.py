@@ -33,7 +33,7 @@ class Assistant:
                             )
         except Exception as e:                                            
             logging.error(f"Error opening audio stream: {str(e)}")
-            self.wait_exit()
+ 
 
         args = {"language": 'English',
         "name": "small.en",
