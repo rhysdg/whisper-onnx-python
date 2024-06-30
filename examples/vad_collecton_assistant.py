@@ -80,6 +80,8 @@ class Assistant:
 
         self.context = []
         self.frames = []
+        self.activity = []
+        self.triggered = False
         self.released=False
         self.terminate=False
 
@@ -95,6 +97,29 @@ class Assistant:
 
                 confidence = silero_infer(data)
 
+                if new_confidence > 0.01:
+                    activity.append(audio_chunk)
+                    self.triggered = True
+                    start = time.time()
+
+                if new_confidence < 0.1 and triggered and (time.time()-start) > 0.3:
+                    
+                                        
+                    speech =  waveform_from_mic(self.activity)
+                    
+                    result = whisper_model.transcribe(
+                                speech,
+                                temperature=temperature,
+                                **decoder_options
+                                )
+
+                    #dropping noise and single words
+                    if len([i for i in result['text'].split(' ') if i != '']) > 1:
+                        print(result['text'])
+                    
+                    self.activity = []
+    
+                        
     def get_release(self, key):
 
         if self.key == 'space':
