@@ -29,7 +29,7 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
     package_data={
-        '': ['*.npz', '*.txt', '*.json'],
+        '': ['*.npz', '*.txt', '*.json', '*.onnx'],
     },
     include_package_data=True,
     install_requires=[
